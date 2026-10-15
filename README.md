@@ -17,15 +17,17 @@ général avant 13 h). Au-delà de `perime_apres`, considérez la donnée comme 
 
 ## Exemples
 
-| Dossier | Pour | Testé |
-| --- | --- | --- |
-| [`shell/`](shell/) | `curl` dans un terminal | oui |
-| [`javascript/`](javascript/) | navigateur ou Node 18+ (`fetch`) | oui (Node) |
-| [`python/`](python/) | Python 3, sans bibliothèque à installer ; comptage des rouges par saison depuis le CSV | oui |
-| [`home-assistant/`](home-assistant/) | capteurs REST, capteur binaire « demain rouge », alerte la veille à 18 h | modèles vérifiés avec Jinja2 ; à valider dans HA |
-| [`jeedom/`](jeedom/) | virtuel + bloc code de scénario | non (pas de Jeedom sous la main) |
-| [`domoticz/`](domoticz/) | script dzVents | non |
-| [`esp32/`](esp32/) | ESP32 + ArduinoJson 7 : lampe témoin | non compilé |
+| Dossier | Pour |
+| --- | --- |
+| [`shell/`](shell/) | `curl` dans un terminal |
+| [`javascript/`](javascript/) | navigateur ou Node 18+ (`fetch`) |
+| [`python/`](python/) | Python 3 sans dépendance, dont le comptage des jours rouges par saison depuis le CSV |
+| [`home-assistant/`](home-assistant/) | capteurs REST, capteur binaire « demain rouge », alerte la veille à 18 h |
+| [`jeedom/`](jeedom/) | virtuel + bloc code de scénario |
+| [`domoticz/`](domoticz/) | script dzVents |
+| [`esp32/`](esp32/) | ESP32 + ArduinoJson 7 : une lampe témoin qui prend la couleur du jour |
+
+Les exemples Home Assistant, Jeedom, Domoticz et ESP32 sont à adapter à votre installation (noms d'entités, broches). Un retour sur votre configuration est le bienvenu.
 
 Google Sheets, sans code : `=IMPORTDATA("https://jourtempo.fr/api/v1/tempo-historique.csv")`, puis par exemple
 `=NB.SI.ENS(C:C;"2025-2026";B:B;"rouge")` pour compter les rouges d'une saison.
