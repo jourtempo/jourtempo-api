@@ -1,0 +1,40 @@
+# Home Assistant : couleur Tempo (API gratuite Jour Tempo, données RTE). Doc : https://jourtempo.fr/api/
+# À ajouter dans configuration.yaml (fusionner avec vos blocs rest: / template: existants), puis redémarrer.
+# Entités créées : sensor.tempo_aujourd_hui, sensor.tempo_demain (bleu | blanc | rouge | inconnu),
+# sensor.tempo_rouges_restants, binary_sensor.tempo_demain_rouge.
+rest:
+  - resource: https://jourtempo.fr/api/v1/tempo.json
+    scan_interval: 1800   # 30 minutes : la couleur change une fois par jour
+    sensor:
+      - name: "Tempo aujourd'hui"
+        unique_id: jourtempo_aujourdhui
+        value_template: "{{ value_json.aujourdhui.code }}"
+        json_attributes_path: "$.aujourdhui"
+        json_attributes: [date, libelle]
+      - name: "Tempo demain"
+        unique_id: jourtempo_demain
+        value_template: "{{ value_json.demain.code }}"
+        json_attributes_path: "$.demain"
+        json_attributes: [date, libelle]
+      - name: "Tempo rouges restants"
+        unique_id: jourtempo_rouges_restants
+        value_template: "{{ value_json.saison.compteurs.rouge.restants }}"
+        unit_of_measurement: "jours"
+      - name: "Tempo blancs restants"
+        unique_id: jourtempo_blancs_restants
+        value_template: "{{ value_json.saison.compteurs.blanc.restants }}"
+        unit_of_measurement: "jours"
+
+template:
+  - binary_sensor:
+      - name: "Tempo demain rouge"
+        unique_id: jourtempo_demain_rouge
+        state: "{{ is_state('sensor.tempo_demain', 'rouge') }}"
+      # Couleur de la date du jour, juste dès minuit : avant le relevé de 6 h 05, elle est encore dans « demain ».
+      - name: "Tempo aujourd'hui rouge"
+        unique_id: jourtempo_aujourdhui_rouge
+        state: >-
+          {% set jour = now().date().isoformat() %}
+          {% if state_attr('sensor.tempo_aujourd_hui', 'date') == jour %}{{ is_state('sensor.tempo_aujourd_hui', 'rouge') }}
+          {% elif state_attr('sensor.tempo_demain', 'date') == jour %}{{ is_state('sensor.tempo_demain', 'rouge') }}
+          {% else %}false{% endif %}

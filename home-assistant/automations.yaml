@@ -1,0 +1,37 @@
+# Home Assistant : alerte la veille d'un jour rouge Tempo, à 18 h. Doc : https://jourtempo.fr/api/
+# À coller dans automations.yaml (ou dans l'éditeur YAML d'une nouvelle automatisation, sans le tiret du début).
+# Syntaxe Home Assistant 2024.10 et plus ; avant : trigger/platform, condition, service.
+# Remplacez notify.notify par votre service (ex. notify.mobile_app_mon_telephone).
+- alias: "Veille d'un jour rouge Tempo (18 h)"
+  triggers:
+    - trigger: time
+      at: "18:00:00"
+  conditions:
+    - condition: state
+      entity_id: binary_sensor.tempo_demain_rouge
+      state: "on"
+  actions:
+    - action: notify.notify
+      data:
+        title: "Demain : jour ROUGE Tempo"
+        message: >-
+          Demain ({{ state_attr('sensor.tempo_demain', 'date') }}) est un jour rouge.
+          Il reste {{ states('sensor.tempo_rouges_restants') }} jours rouges dans la saison.
+
+# Variante : couper le ballon d'eau chaude pendant les heures pleines d'un jour rouge (6 h - 22 h).
+- alias: "Ballon coupé un jour rouge Tempo"
+  triggers:
+    - trigger: time
+      at: "06:00:30"
+  conditions:
+    - condition: state
+      entity_id: binary_sensor.tempo_aujourd_hui_rouge
+      state: "on"
+  actions:
+    - action: switch.turn_off
+      target:
+        entity_id: switch.ballon_eau_chaude   # à adapter
+    - delay: "16:00:00"
+    - action: switch.turn_on
+      target:
+        entity_id: switch.ballon_eau_chaude
