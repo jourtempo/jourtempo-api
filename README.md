@@ -26,6 +26,7 @@ général avant 13 h). Au-delà de `perime_apres`, considérez la donnée comme 
 | [`jeedom/`](jeedom/) | virtuel + bloc code de scénario |
 | [`domoticz/`](domoticz/) | script dzVents |
 | [`esp32/`](esp32/) | ESP32 + ArduinoJson 7 : une lampe témoin qui prend la couleur du jour |
+| [`node-red/`](node-red/) | flow Node-RED prêt à importer : couleur du jour et de demain toutes les 30 min, erreurs et péremption gérées |
 
 Les exemples Home Assistant, Jeedom, Domoticz et ESP32 sont à adapter à votre installation (noms d'entités, broches). Un retour sur votre configuration est le bienvenu.
 
@@ -39,7 +40,7 @@ Google Sheets, sans code : `=IMPORTDATA("https://jourtempo.fr/api/v1/tempo-histo
 - Jour Tempo est un site indépendant, ni EDF ni RTE.
 - Le format `v1` est stable : les champs ne changeront ni de nom ni de sens.
 
-Une erreur, une idée d'exemple (ESPHome, Node-RED, Homey, Gladys…) ? Ouvrez une *issue* ou écrivez à contact@jourtempo.fr.
+Une erreur, une idée d'exemple (ESPHome, Homey, Gladys…) ? Ouvrez une *issue* ou écrivez à contact@jourtempo.fr.
 
 ## Licence
 

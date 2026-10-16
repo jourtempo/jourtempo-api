@@ -1,0 +1,129 @@
+[
+  {
+    "id": "a1c0de0000000001",
+    "type": "comment",
+    "name": "Jour Tempo: Tempo colour of today and tomorrow (RTE data, free API, no key)",
+    "info": "Reads https://jourtempo.fr/api/v1/tempo.json every 30 minutes (never more often than every 10 minutes).\n\n- Output 1 of the function: `msg.payload.today` / `msg.payload.tomorrow` = `bleu`, `blanc`, `rouge` (tomorrow can be `inconnu` before RTE's announcement, around 10:30).\n- Output 2: no usable data (no answer yet, error, or data past `perime_apres`): colours are `inconnu`, never guessed.\n- If a request fails, the last good answer is used until it expires (`from_cache: true`).\n\nCredit when displaying the colours publicly: \"Couleurs Tempo : RTE, via Jour Tempo\" with a link to https://jourtempo.fr\n\nDocumentation and terms: https://jourtempo.fr/api/",
+    "x": 330,
+    "y": 40,
+    "wires": []
+  },
+  {
+    "id": "a1c0de0000000002",
+    "type": "inject",
+    "name": "every 30 min",
+    "props": [],
+    "repeat": "1800",
+    "crontab": "",
+    "once": true,
+    "onceDelay": "5",
+    "topic": "",
+    "x": 140,
+    "y": 100,
+    "wires": [
+      [
+        "a1c0de0000000003"
+      ]
+    ]
+  },
+  {
+    "id": "a1c0de0000000003",
+    "type": "http request",
+    "name": "tempo.json",
+    "method": "GET",
+    "ret": "obj",
+    "paytoqs": "ignore",
+    "url": "https://jourtempo.fr/api/v1/tempo.json",
+    "tls": "",
+    "persist": false,
+    "proxy": "",
+    "insecureHTTPParser": false,
+    "authType": "",
+    "senderr": false,
+    "headers": [
+      {
+        "keyType": "other",
+        "keyValue": "User-Agent",
+        "valueType": "other",
+        "valueValue": "node-red-jourtempo/1.0"
+      }
+    ],
+    "x": 330,
+    "y": 100,
+    "wires": [
+      [
+        "a1c0de0000000005"
+      ]
+    ]
+  },
+  {
+    "id": "a1c0de0000000004",
+    "type": "catch",
+    "name": "network error",
+    "scope": [
+      "a1c0de0000000003"
+    ],
+    "uncaught": false,
+    "x": 340,
+    "y": 160,
+    "wires": [
+      [
+        "a1c0de0000000005"
+      ]
+    ]
+  },
+  {
+    "id": "a1c0de0000000005",
+    "type": "function",
+    "name": "Tempo colours",
+    "func": "// Jour Tempo: today's and tomorrow's Tempo colour, never guessed.\n// Input: answer of the \"http request\" node, or an error caught by the \"catch\" node.\n// Output 1: usable colours. Output 2: colours unknown (no data, error or expired data).\nconst ATTRIBUTION = \"Couleurs Tempo : RTE, via Jour Tempo (https://jourtempo.fr)\";\nconst CODES = [\"bleu\", \"blanc\", \"rouge\"];\n\nfunction valid(d) {\n    return d && typeof d === \"object\" && d.aujourdhui && d.demain &&\n        CODES.includes(d.aujourdhui.code) && typeof d.perime_apres === \"string\" &&\n        !isNaN(Date.parse(d.perime_apres));\n}\n\n// Tempo day (06:00 to 06:00, Paris time) at a given instant, as \"YYYY-MM-DD\".\nfunction tempoDay(ms) {\n    return new Intl.DateTimeFormat(\"en-CA\", {\n        timeZone: \"Europe/Paris\", year: \"numeric\", month: \"2-digit\", day: \"2-digit\"\n    }).format(new Date(ms - 6 * 3600 * 1000));\n}\n\nlet problem = null;\nif (msg.error) {\n    problem = \"request failed: \" + (msg.error.message || msg.error);\n} else if (msg.statusCode !== 200) {\n    problem = \"HTTP \" + msg.statusCode;\n} else if (!valid(msg.payload)) {\n    problem = \"invalid data\";\n} else {\n    flow.set(\"jourtempo_last\", msg.payload);   // keep the last good answer\n}\n\nconst data = flow.get(\"jourtempo_last\");\nconst now = Date.now();\nlet today = \"inconnu\", tomorrow = \"inconnu\";\nif (data && now < Date.parse(data.perime_apres)) {\n    const day = tempoDay(now);\n    if (day === data.aujourdhui.date) {\n        today = data.aujourdhui.code;\n        tomorrow = CODES.includes(data.demain.code) ? data.demain.code : \"inconnu\";\n    } else if (day === data.demain.date && CODES.includes(data.demain.code)) {\n        today = data.demain.code;            // after 06:00 the announced \"tomorrow\" is today\n    }\n}\n\nif (today === \"inconnu\") {\n    const reason = problem || (data ? \"data expired since \" + data.perime_apres : \"no data yet\");\n    node.status({ fill: \"grey\", shape: \"ring\", text: \"unknown: \" + reason });\n    msg.payload = { today: \"inconnu\", tomorrow: \"inconnu\", error: reason };\n    return [null, msg];\n}\n\nconst c = (data.saison && data.saison.compteurs) || {};\nconst left = (k) => (c[k] && typeof c[k].restants === \"number\") ? c[k].restants : null;\nmsg.payload = {\n    today: today,\n    tomorrow: tomorrow,\n    today_date: data.aujourdhui.date,\n    tomorrow_date: data.demain.date,\n    remaining: { bleu: left(\"bleu\"), blanc: left(\"blanc\"), rouge: left(\"rouge\") },\n    expires: data.perime_apres,\n    collected: data.collecte_le,\n    from_cache: problem !== null,\n    warning: problem,\n    attribution: ATTRIBUTION\n};\nconst fill = { bleu: \"blue\", blanc: \"grey\", rouge: \"red\" }[today];\nnode.status({ fill: fill, shape: problem ? \"ring\" : \"dot\", text: \"today \" + today + \", tomorrow \" + tomorrow });\nreturn [msg, null];\n",
+    "outputs": 2,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 540,
+    "y": 120,
+    "wires": [
+      [
+        "a1c0de0000000006"
+      ],
+      [
+        "a1c0de0000000007"
+      ]
+    ]
+  },
+  {
+    "id": "a1c0de0000000006",
+    "type": "debug",
+    "name": "Tempo",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 730,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "a1c0de0000000007",
+    "type": "debug",
+    "name": "Tempo unknown",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 750,
+    "y": 140,
+    "wires": []
+  }
+]
